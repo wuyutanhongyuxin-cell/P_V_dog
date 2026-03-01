@@ -88,7 +88,7 @@ python main.py --ticker BTC --direction long --qty 0.005 \
 |------|------|
 | `--dry-run` | 试运行：监控价差、模拟加仓，但不实际下单 |
 | `--env-file` | .env 文件路径 (默认: `.env`) |
-| `--variational-auth-mode` | 认证模式: `cookie` (默认) 或 `siwe` |
+| `--variational-auth-mode` | 认证模式: `cookie` (默认) |
 
 ## 参数实例
 
