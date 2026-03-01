@@ -143,6 +143,25 @@ class DCAConfig:
         else:
             self.variational_market = self.ticker
 
+    def validate(self):
+        """验证 DCA 交易参数"""
+        if self.qty <= 0:
+            raise ValueError(f"qty 必须为正数, 当前: {self.qty}")
+        if self.max_position <= 0:
+            raise ValueError(f"max_position 必须为正数, 当前: {self.max_position}")
+        if self.qty > self.max_position:
+            raise ValueError(
+                f"qty ({self.qty}) 不能大于 max_position ({self.max_position})"
+            )
+        if self.mingap < 0:
+            raise ValueError(f"mingap 不能为负数, 当前: {self.mingap}")
+        if self.maxgap <= self.mingap:
+            raise ValueError(
+                f"maxgap ({self.maxgap}) 必须大于 mingap ({self.mingap})"
+            )
+        if self.interval < 0:
+            raise ValueError(f"interval 不能为负数, 当前: {self.interval}")
+
 
 @dataclass
 class AppConfig:
@@ -169,3 +188,4 @@ class AppConfig:
         self.paradex.validate()
         self.variational.validate(self.variational_auth_mode)
         self.trading.resolve_markets()
+        self.trading.validate()

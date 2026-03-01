@@ -97,7 +97,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--variational-auth-mode", type=str, default="cookie",
-        choices=["cookie", "siwe"],
+        choices=["cookie"],
         help="Variational 认证模式 (默认: cookie)",
     )
 

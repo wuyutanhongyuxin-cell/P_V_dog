@@ -156,36 +156,39 @@ class DCAEngine:
         logger.info("=" * 60)
         logger.info("开始优雅退出流程...")
 
-        # 1. 取消挂单
-        logger.info("[退出] 取消 Paradex 所有挂单...")
-        await self.paradex.cancel_all_orders(self.paradex_market)
-        logger.info("[退出] 取消 Variational 所有挂单...")
-        await self.variational.cancel_all_orders(self.variational_market)
+        if not self.dry_run:
+            # 1. 取消挂单
+            logger.info("[退出] 取消 Paradex 所有挂单...")
+            await self.paradex.cancel_all_orders(self.paradex_market)
+            logger.info("[退出] 取消 Variational 所有挂单...")
+            await self.variational.cancel_all_orders(self.variational_market)
 
-        # 2. 市价平仓
-        logger.info("[退出] 市价平仓 Paradex...")
-        await self.paradex.close_position(self.paradex_market)
-        logger.info("[退出] 市价平仓 Variational...")
-        await self.variational.close_position(self.variational_market)
+            # 2. 市价平仓
+            logger.info("[退出] 市价平仓 Paradex...")
+            await self.paradex.close_position(self.paradex_market)
+            logger.info("[退出] 市价平仓 Variational...")
+            await self.variational.close_position(self.variational_market)
 
-        # 3. 验证仓位归零
-        for i in range(10):
-            await asyncio.sleep(1)
-            p_pos = await self.paradex.get_position_size(self.paradex_market)
-            v_pos = await self.variational.get_position_size(
-                self.variational_market
-            )
-            logger.info(
-                f"[退出] 验证仓位 ({i + 1}/10): "
-                f"Paradex={p_pos}, Variational={v_pos}"
-            )
-            if p_pos == 0 and v_pos == 0:
-                logger.info("[退出] 两边仓位已归零")
-                break
-            if p_pos != 0:
-                await self.paradex.close_position(self.paradex_market)
-            if v_pos != 0:
-                await self.variational.close_position(self.variational_market)
+            # 3. 验证仓位归零
+            for i in range(10):
+                await asyncio.sleep(1)
+                p_pos = await self.paradex.get_position_size(self.paradex_market)
+                v_pos = await self.variational.get_position_size(
+                    self.variational_market
+                )
+                logger.info(
+                    f"[退出] 验证仓位 ({i + 1}/10): "
+                    f"Paradex={p_pos}, Variational={v_pos}"
+                )
+                if p_pos == 0 and v_pos == 0:
+                    logger.info("[退出] 两边仓位已归零")
+                    break
+                if p_pos != 0:
+                    await self.paradex.close_position(self.paradex_market)
+                if v_pos != 0:
+                    await self.variational.close_position(self.variational_market)
+        else:
+            logger.info("[DRY RUN] 跳过实际平仓操作")
 
         # 4. 最终统计
         elapsed = time.time() - self.start_time
@@ -286,6 +289,17 @@ class DCAEngine:
             f"Variational={self._variational_balance} | "
             f"总权益=${total_equity:.2f}"
         )
+
+        # 余额充足性检查
+        if not self.dry_run:
+            if self._paradex_balance < self.min_balance:
+                raise ValueError(
+                    f"Paradex 余额不足: {self._paradex_balance} < {self.min_balance}"
+                )
+            if self._variational_balance < self.min_balance:
+                raise ValueError(
+                    f"Variational 余额不足: {self._variational_balance} < {self.min_balance}"
+                )
 
         # Telegram 启动通知
         if self.telegram:

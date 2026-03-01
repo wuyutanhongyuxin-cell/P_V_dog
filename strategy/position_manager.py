@@ -90,13 +90,15 @@ class PositionManager:
 
     @property
     def needed(self) -> int:
-        """还需要几笔才到满仓"""
+        """还需要几笔才到满仓 (向上取整)"""
         if self.qty <= 0:
             return 0
         remaining = self.max_position - self.total_position
         if remaining <= 0:
             return 0
-        return int(remaining / self.qty)
+        count = remaining / self.qty
+        int_count = int(count)
+        return int_count if count == int_count else int_count + 1
 
     @property
     def avg_entry_spread(self) -> Decimal:
@@ -215,12 +217,23 @@ class PositionManager:
             )
 
     def update_positions(self, paradex: Decimal, variational: Decimal) -> None:
-        """从交易所实际仓位同步"""
+        """从交易所实际仓位同步 (取两边较大值，更安全)"""
         self.paradex_position = paradex
         self.variational_position = variational
 
-        # 以 Paradex 仓位为准同步 total_position
-        actual = abs(paradex)
+        # 以两边仓位的较大值为准 (避免单边残留被忽略)
+        p_abs = abs(paradex)
+        v_abs = abs(variational)
+        actual = max(p_abs, v_abs)
+
+        # 检测仓位不平衡
+        if (p_abs > 0 or v_abs > 0) and abs(p_abs - v_abs) > self.qty:
+            logger.warning(
+                f"仓位不平衡: Paradex={paradex:+.6f}, "
+                f"Variational={variational:+.6f}, "
+                f"差异={abs(p_abs - v_abs):.6f}"
+            )
+
         if actual != self.total_position:
             if self.total_position > 0:
                 logger.debug(

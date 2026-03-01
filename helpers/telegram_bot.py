@@ -29,7 +29,7 @@ class TelegramNotifier:
 
         self.session = requests.Session()
         self.session.verify = certifi.where()
-        self.session.timeout = 10
+        self._timeout = 10
 
     def send(self, message: str, parse_mode: str = "HTML") -> bool:
         """发送消息"""
@@ -45,7 +45,7 @@ class TelegramNotifier:
             }
 
             url = f"{self.base_url}/sendMessage"
-            resp = self.session.post(url, json=payload)
+            resp = self.session.post(url, json=payload, timeout=self._timeout)
             data = resp.json()
 
             if not data.get("ok", False):
